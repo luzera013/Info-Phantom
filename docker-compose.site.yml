@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # Frontend (React App)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - info-phantom
+    restart: unless-stopped
+
+  # Backend (API)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OMNISCIENT_REDIS_URL=redis://redis:6379/0
+      - OMNISCIENT_REDIS_PASSWORD=
+      - OMNISCIENT_REDIS_DB=0
+      - OMNISCIENT_LOG_LEVEL=INFO
+      - OMNISCIENT_MAX_CONCURRENT_REQUESTS=1100
+      - OMNISCIENT_CACHE_TTL=3600
+      - OMNISCIENT_API_KEY=demo-api-key-change-in-production
+      - OMNISCIENT_OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OMNISCIENT_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OMNISCIENT_GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - redis
+    networks:
+      - info-phantom
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - info-phantom
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - info-phantom
+    restart: unless-stopped
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - info-phantom
+    restart: unless-stopped
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - info-phantom
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  info-phantom:
+    driver: bridge

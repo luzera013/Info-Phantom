@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMNISCIENT ULTIMATE SYSTEM FINAL</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>🧠 OMNISCIENT</h1>
+                    <span class="subtitle">ULTIMATE SYSTEM FINAL</span>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn active" data-page="search">
+                        <span class="icon">🔍</span>
+                        <span>Buscar</span>
+                    </button>
+                    <button class="nav-btn" data-page="dashboard">
+                        <span class="icon">📊</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-btn" data-page="history">
+                        <span class="icon">📜</span>
+                        <span>Histórico</span>
+                    </button>
+                    <button class="nav-btn" data-page="settings">
+                        <span class="icon">⚙️</span>
+                        <span>Config</span>
+                    </button>
+                </nav>
+                <div class="user-menu">
+                    <button class="user-btn" id="userMenuBtn">
+                        <span class="avatar">👤</span>
+                        <span class="username">Convidado</span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="dropdown" id="userDropdown">
+                        <a href="#" class="dropdown-item" id="loginBtn">🔐 Login</a>
+                        <a href="#" class="dropdown-item" id="registerBtn">📝 Registrar</a>
+                        <hr class="dropdown-divider">
+                        <a href="#" class="dropdown-item" id="logoutBtn" style="display:none;">🚪 Sair</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Search Page -->
+            <div id="searchPage" class="page active">
+                <div class="search-container">
+                    <div class="search-header">
+                        <h2>Busca Avançada Multi-Fonte</h2>
+                        <p>Coleta e análise de informações em larga escala</p>
+                    </div>
+                    
+                    <div class="search-form">
+                        <div class="search-input-group">
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                class="search-input" 
+                                placeholder="Digite sua busca aqui..."
+                                autocomplete="off"
+                            >
+                            <button class="search-btn" id="searchBtn">
+                                <span class="icon">🔍</span>
+                                <span>Buscar</span>
+                            </button>
+                        </div>
+                        
+                        <div class="search-options">
+                            <details class="options-group">
+                                <summary>⚙️ Opções Avançadas</summary>
+                                <div class="options-content">
+                                    <div class="option-row">
+                                        <label for="maxResults">Máximo de resultados:</label>
+                                        <input type="number" id="maxResults" min="10" max="1000" value="100">
+                                    </div>
+                                    
+                                    <div class="option-row">
+                                        <label>Fontes:</label>
+                                        <div class="checkbox-group">
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="sources" value="web" checked>
+                                                <span>🌐 Web</span>
+                                            </label>
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="sources" value="social" checked>
+                                                <span>📱 Social</span>
+                                            </label>
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="sources" value="knowledge" checked>
+                                                <span>📚 Knowledge</span>
+                                            </label>
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="sources" value="news" checked>
+                                                <span>📰 News</span>
+                                            </label>
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="sources" value="tor">
+                                                <span>🕶️ Tor</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="option-row">
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="useCache" checked>
+                                            <span>💾 Usar Cache</span>
+                                        </label>
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="deepScan">
+                                            <span>🔬 Scan Profundo</span>
+                                        </label>
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="extractData" checked>
+                                            <span>📊 Extrair Dados</span>
+                                        </label>
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="useAI" checked>
+                                            <span>🤖 Usar IA</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="searchLoading" class="loading-state" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">
+                            <p>Executando busca avançada...</p>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <p class="loading-status" id="loadingStatus">Iniciando...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Results -->
+                    <div id="searchResults" class="results-container" style="display: none;">
+                        <div class="results-header">
+                            <h3>Resultados da Busca</h3>
+                            <div class="results-actions">
+                                <button class="action-btn" id="exportBtn">
+                                    <span>📤</span>
+                                    <span>Exportar</span>
+                                </button>
+                                <button class="action-btn" id="refreshBtn">
+                                    <span>🔄</span>
+                                    <span>Atualizar</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Summary -->
+                        <div id="searchSummary" class="summary-section">
+                            <h4>📋 Resumo da Análise</h4>
+                            <div id="summaryContent" class="summary-content"></div>
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div id="searchStats" class="stats-section">
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <span class="stat-value" id="totalResults">0</span>
+                                    <span class="stat-label">Resultados</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="processingTime">0s</span>
+                                    <span class="stat-label">Tempo</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="sourcesUsed">0</span>
+                                    <span class="stat-label">Fontes</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="relevanceScore">0%</span>
+                                    <span class="stat-label">Relevância</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Results List -->
+                        <div id="resultsList" class="results-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page">
+                <div class="dashboard-container">
+                    <div class="dashboard-header">
+                        <h2>📊 Dashboard de Sistema</h2>
+                        <p>Visão geral do sistema e métricas em tempo real</p>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <!-- System Status -->
+                        <div class="dashboard-card">
+                            <h3>🏥 Status do Sistema</h3>
+                            <div id="systemStatus" class="status-content">
+                                <div class="status-item">
+                                    <span class="status-indicator" id="overallStatus"></span>
+                                    <span class="status-text">Verificando...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Active Scans -->
+                        <div class="dashboard-card">
+                            <h3>🔍 Buscas Ativas</h3>
+                            <div id="activeScans" class="scans-content">
+                                <p class="no-data">Nenhuma busca ativa</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Searches -->
+                        <div class="dashboard-card">
+                            <h3>🕐 Buscas Recentes</h3>
+                            <div id="recentSearches" class="recent-content">
+                                <p class="no-data">Carregando...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- System Metrics -->
+                        <div class="dashboard-card full-width">
+                            <h3>📈 Métricas do Sistema</h3>
+                            <div id="systemMetrics" class="metrics-content">
+                                <div class="metrics-grid">
+                                    <div class="metric-item">
+                                        <span class="metric-label">CPU:</span>
+                                        <span class="metric-value" id="cpuMetric">0%</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Memória:</span>
+                                        <span class="metric-value" id="memoryMetric">0%</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Disco:</span>
+                                        <span class="metric-value" id="diskMetric">0%</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Cache Hit:</span>
+                                        <span class="metric-value" id="cacheMetric">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div id="historyPage" class="page">
+                <div class="history-container">
+                    <div class="history-header">
+                        <h2>📜 Histórico de Buscas</h2>
+                        <div class="history-controls">
+                            <input type="text" id="historySearch" placeholder="Buscar no histórico...">
+                            <select id="historyFilter">
+                                <option value="">Todos</option>
+                                <option value="today">Hoje</option>
+                                <option value="week">Esta Semana</option>
+                                <option value="month">Este Mês</option>
+                            </select>
+                            <button class="action-btn" id="clearHistoryBtn">
+                                <span>🗑️</span>
+                                <span>Limpar</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="historyList" class="history-list">
+                        <p class="no-data">Carregando histórico...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page">
+                <div class="settings-container">
+                    <div class="settings-header">
+                        <h2>⚙️ Configurações</h2>
+                    </div>
+                    
+                    <div class="settings-grid">
+                        <!-- API Settings -->
+                        <div class="settings-section">
+                            <h3>🔌 Configurações da API</h3>
+                            <div class="setting-item">
+                                <label for="apiEndpoint">Endpoint da API:</label>
+                                <input type="text" id="apiEndpoint" value="http://localhost:8000/api/v1">
+                            </div>
+                            <div class="setting-item">
+                                <label for="apiKey">Chave da API:</label>
+                                <input type="password" id="apiKey" placeholder="Sua chave de API">
+                            </div>
+                            <div class="setting-item">
+                                <label for="timeout">Timeout (segundos):</label>
+                                <input type="number" id="timeout" min="5" max="300" value="30">
+                            </div>
+                        </div>
+                        
+                        <!-- Search Settings -->
+                        <div class="settings-section">
+                            <h3>🔍 Configurações de Busca</h3>
+                            <div class="setting-item">
+                                <label for="defaultMaxResults">Resultados padrão:</label>
+                                <input type="number" id="defaultMaxResults" min="10" max="1000" value="100">
+                            </div>
+                            <div class="setting-item">
+                                <label for="defaultSources">Fontes padrão:</label>
+                                <select id="defaultSources" multiple>
+                                    <option value="web" selected>Web</option>
+                                    <option value="social" selected>Social</option>
+                                    <option value="knowledge" selected>Knowledge</option>
+                                    <option value="news" selected>News</option>
+                                    <option value="tor">Tor</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="autoCache" checked>
+                                    <span>💾 Cache automático</span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="autoAI" checked>
+                                    <span>🤖 Análise automática</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- UI Settings -->
+                        <div class="settings-section">
+                            <h3>🎨 Configurações da Interface</h3>
+                            <div class="setting-item">
+                                <label for="theme">Tema:</label>
+                                <select id="theme">
+                                    <option value="light">Claro</option>
+                                    <option value="dark" selected>Escuro</option>
+                                    <option value="auto">Automático</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="language">Idioma:</label>
+                                <select id="language">
+                                    <option value="pt-BR" selected>Português (Brasil)</option>
+                                    <option value="en-US">English (US)</option>
+                                    <option value="es-ES">Español</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="resultsPerPage">Resultados por página:</label>
+                                <select id="resultsPerPage">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50" selected>50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="settings-actions">
+                            <button class="btn-primary" id="saveSettingsBtn">
+                                💾 Salvar Configurações
+                            </button>
+                            <button class="btn-secondary" id="resetSettingsBtn">
+                                🔄 Restaurar Padrão
+                            </button>
+                            <button class="btn-danger" id="clearDataBtn">
+                                🗑️ Limpar Dados Locais
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 OMNISCIENT ULTIMATE SYSTEM FINAL</p>
+                <div class="footer-links">
+                    <a href="#" id="aboutBtn">Sobre</a>
+                    <a href="#" id="helpBtn">Ajuda</a>
+                    <a href="#" id="privacyBtn">Privacidade</a>
+                    <a href="#" id="githubBtn">GitHub</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔐 Login</h3>
+                <button class="close-btn" id="closeLoginModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Usuário:</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Senha:</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📤 Exportar Resultados</h3>
+                <button class="close-btn" id="closeExportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="exportFormat">Formato:</label>
+                    <select id="exportFormat">
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                        <option value="xlsx">Excel</option>
+                        <option value="xml">XML</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="includeExtractedData" checked>
+                        <span>📊 Incluir dados extraídos</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="includeSummary" checked>
+                        <span>📋 Incluir resumo</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="includeStats" checked>
+                        <span>📈 Incluir estatísticas</span>
+                    </label>
+                </div>
+                <button type="button" class="btn-primary" id="confirmExportBtn">Exportar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+    <script src="api.js"></script>
+</body>
+</html>

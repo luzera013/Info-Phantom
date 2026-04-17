@@ -1,0 +1,293 @@
+# OMNISCIENT ULTIMATE SYSTEM FINAL - Docker Compose Configuration
+version: '3.8'
+
+services:
+  # Main Application
+  omniscient-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omniscient-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    environment:
+      - OMNISCIENT_ENV=production
+      - OMNISCIENT_LOG_LEVEL=INFO
+      - OMNISCIENT_DB_URL=sqlite:///app/data/omniscient.db
+      - OMNISCIENT_REDIS_URL=redis://redis:6379/0
+      - OMNISCIENT_SECRET_KEY=${OMNISCIENT_SECRET_KEY}
+      - OMNISCIENT_OPENAI_API_KEY=${OMNISCIENT_OPENAI_API_KEY}
+      - OMNISCIENT_ANTHROPIC_API_KEY=${OMNISCIENT_ANTHROPIC_API_KEY}
+      - OMNISCIENT_TOR_CONTROL_PORT=9051
+      - OMNISCIENT_TOR_SOCKS_PORT=9050
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: omniscient-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - omniscient-network
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database (Optional - for production)
+  postgres:
+    image: postgres:15-alpine
+    container_name: omniscient-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-omniscient}
+      - POSTGRES_USER=${POSTGRES_USER:-omniscient}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-omniscient123}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-omniscient} -d ${POSTGRES_DB:-omniscient}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Tor Service (Anonymous Browsing)
+  tor:
+    image: osminogin/tor:latest
+    container_name: omniscient-tor
+    restart: unless-stopped
+    ports:
+      - "9050:9050"  # SOCKS port
+      - "9051:9051"  # Control port
+    volumes:
+      - tor-data:/var/lib/tor
+      - ./config/torrc:/etc/tor/torrc
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9051"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: omniscient-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+      - ./frontend:/usr/share/nginx/html
+    depends_on:
+      - omniscient-api
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Elasticsearch (Optional - for advanced search)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: omniscient-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Kibana (Optional - for Elasticsearch visualization)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: omniscient-kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus (Optional - for monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: omniscient-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana (Optional - for visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: omniscient-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - omniscient-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker (Optional - for background tasks)
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omniscient-celery-worker
+    restart: unless-stopped
+    command: celery -A backend.core.celery_app worker --loglevel=info
+    environment:
+      - OMNISCIENT_ENV=production
+      - OMNISCIENT_DB_URL=sqlite:///app/data/omniscient.db
+      - OMNISCIENT_REDIS_URL=redis://redis:6379/0
+      - OMNISCIENT_SECRET_KEY=${OMNISCIENT_SECRET_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - omniscient-network
+
+  # Celery Beat (Optional - for scheduled tasks)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omniscient-celery-beat
+    restart: unless-stopped
+    command: celery -A backend.core.celery_app beat --loglevel=info
+    environment:
+      - OMNISCIENT_ENV=production
+      - OMNISCIENT_DB_URL=sqlite:///app/data/omniscient.db
+      - OMNISCIENT_REDIS_URL=redis://redis:6379/0
+      - OMNISCIENT_SECRET_KEY=${OMNISCIENT_SECRET_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - omniscient-network
+
+  # Flower (Optional - for Celery monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omniscient-flower
+    restart: unless-stopped
+    ports:
+      - "5555:5555"
+    command: celery -A backend.core.celery_app flower --port=5555
+    environment:
+      - OMNISCIENT_ENV=production
+      - OMNISCIENT_REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    networks:
+      - omniscient-network
+
+# Volumes
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  tor-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+# Networks
+networks:
+  omniscient-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
